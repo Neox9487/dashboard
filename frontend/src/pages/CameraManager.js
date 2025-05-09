@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Camera from "../components/Camera";
 
+const API_BASE_URL = "http://127.0.0.1:8000/"
+
 function CameraManager() {
   const [availableCameras, setAvailableCameras] = useState([]);
   const [cameraSettings, setCameraSettings] = useState({});

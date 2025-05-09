@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import InputField from "./wdgets/InputField";
 import SelectionsButtons from "./wdgets/SelectionButtons"; 
 
@@ -63,7 +63,9 @@ function Camera({ id, initialSettings = {} }) {
         const blob = new Blob([event.data], { type: "image/jpeg" });
         const url = URL.createObjectURL(blob);
         if (imgElement) {
-          URL.revokeObjectURL(imgElement.src);
+          if (imgElement.src.startsWith("blob:")) {
+            URL.revokeObjectURL(imgElement.src);
+          }
           imgElement.src = url;
         }
   
