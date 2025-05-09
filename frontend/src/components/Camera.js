@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import InputField from "./wdgets/InputField";
 import SelectionsButtons from "./wdgets/SelectionButtons"; 
 
-const pipelineOptions = [
+const modeOptions = [
   { label: "Color", value: "color" },
   { label: "AprilTag", value: "apriltag" }
 ];
 
 function Camera({ id, initialSettings = {} }) {
-  const [pipelineType, setPipelineType] = useState(initialSettings.pipelineType || "color");
-  const [cameraPipeline, setCameraPipeline] = useState({
+  const [pipeline, setPipeline] = useState(initialSettings.pipelineType || 0);
+  const [pipelineSettings, setPipelineSettings] = useState({
+    mode: initialSettings.mode || "color",
     brightness: initialSettings.brightness || 0,
     saturation: initialSettings.saturation || 0,
     contrast: initialSettings.contrast || 0,
@@ -29,13 +30,13 @@ function Camera({ id, initialSettings = {} }) {
   const [ws, setWs] = useState(null);
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/${id}?pipeline=${pipelineType}`);
+    const ws = new WebSocket(`ws://localhost:8000/ws/${id}?pipeline=${pipeline}`);
     ws.binaryType = "arraybuffer";
   
     ws.onmessage = function (event) {
-      const imgElement = document.getElementById("camera-" + id);
+      const imgElement = document.getElementById("camera-" +  id);
   
-      if (pipelineType === "apriltag") {
+      if (pipelineSettings.mode === "apriltag") {
         try {
           const text = new TextDecoder().decode(event.data);
           const data = JSON.parse(text);
@@ -44,7 +45,10 @@ function Camera({ id, initialSettings = {} }) {
             const binary = Uint8Array.from(atob(data.image), c => c.charCodeAt(0));
             const blob = new Blob([binary], { type: "image/jpeg" });
             const url = URL.createObjectURL(blob);
-            if (imgElement) imgElement.src = url;
+            if (imgElement) {
+              URL.revokeObjectURL(imgElement.src);
+              imgElement.src = url;
+            }
           }
   
           setApriltagPose({
@@ -58,7 +62,10 @@ function Camera({ id, initialSettings = {} }) {
       } else {
         const blob = new Blob([event.data], { type: "image/jpeg" });
         const url = URL.createObjectURL(blob);
-        if (imgElement) imgElement.src = url;
+        if (imgElement) {
+          URL.revokeObjectURL(imgElement.src);
+          imgElement.src = url;
+        }
   
         setApriltagPose({ rvec: null, tvec: null });
       }
@@ -75,22 +82,35 @@ function Camera({ id, initialSettings = {} }) {
         ws.close();
       }
     };
-  }, [id, pipelineType]);
+  }, [pipeline]);
 
   useEffect(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      const cameraSettings = JSON.stringify(cameraPipeline);
-      ws.send(cameraSettings);
+      ws.send(JSON.stringify(pipelineSettings));
     }
-  }, [cameraPipeline, ws]);
+  }, [pipelineSettings, ws]);
   
   const handleInputChange = (section, field, value) => {
-    setCameraPipeline(prevState => ({
-      ...prevState,
-      [section]: {
-        ...prevState[section],
-        [field]: Number(value)
-      }
+    if (section) {
+      setPipelineSettings(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: Number(value),
+        },
+      }));
+    } else {
+      setPipelineSettings(prev => ({
+        ...prev,
+        [field]: Number(value),
+      }));
+    }
+  };
+
+  const handleModeChange = (mode) => {
+    setPipelineSettings((prev) => ({
+      ...prev,
+      mode: mode,
     }));
   };
 
@@ -103,41 +123,41 @@ function Camera({ id, initialSettings = {} }) {
         </div>
       </div>
 
-      {/* pipeline */}
+      {/* mode */}
       <div className="section-box">
         <SelectionsButtons
-          label="Pipeline:"
-          options={pipelineOptions}
-          onChange={(option) => setPipelineType(option.value)}
+          label="Mode:"
+          options={modeOptions}
+          onChange={handleModeChange}
         />
       </div>
 
       {/* color */}
-      {pipelineType === "color" && (
+      {pipelineSettings.mode === "color" && (
         <>
           <div className="section-box">
             <div className="hsv-row-field">
               <InputField label="Hue_Min" type="range" min="0" max="360"
-                value={cameraPipeline.HSV.hue_min}
+                value={pipelineSettings.HSV.hue_min}
                 onChange={(e) => handleInputChange("HSV", "hue_min", e.target.value)} />
               <InputField label="Sat_Min" type="range" min="0" max="100"
-                value={cameraPipeline.HSV.sat_min}
+                value={pipelineSettings.HSV.sat_min}
                 onChange={(e) => handleInputChange("HSV", "sat_min", e.target.value)} />
             </div>
             <div className="hsv-row-field">
               <InputField label="Val_Min" type="range" min="0" max="100"
-                value={cameraPipeline.HSV.val_min}
+                value={pipelineSettings.HSV.val_min}
                 onChange={(e) => handleInputChange("HSV", "val_min", e.target.value)} />
               <InputField label="Hue_Max" type="range" min="0" max="360"
-                value={cameraPipeline.HSV.hue_max}
+                value={pipelineSettings.HSV.hue_max}
                 onChange={(e) => handleInputChange("HSV", "hue_max", e.target.value)} />
             </div>
             <div className="hsv-row-field">
               <InputField label="Sat_Max" type="range" min="0" max="100"
-                value={cameraPipeline.HSV.sat_max}
+                value={pipelineSettings.HSV.sat_max}
                 onChange={(e) => handleInputChange("HSV", "sat_max", e.target.value)} />
               <InputField label="Val_Max" type="range" min="0" max="100"
-                value={cameraPipeline.HSV.val_max}
+                value={pipelineSettings.HSV.val_max}
                 onChange={(e) => handleInputChange("HSV", "val_max", e.target.value)} />
             </div>
           </div>
@@ -145,26 +165,26 @@ function Camera({ id, initialSettings = {} }) {
           <div className="section-box">
             <div className="hsv-row-field">
               <InputField label="Brightness" type="range" min="0" max="100"
-                value={cameraPipeline.brightness}
+                value={pipelineSettings.brightness}
                 onChange={(e) => handleInputChange(null, "brightness", e.target.value)} />
               <InputField label="Saturation" type="range" min="0" max="100"
-                value={cameraPipeline.saturation}
+                value={pipelineSettings.saturation}
                 onChange={(e) => handleInputChange(null, "saturation", e.target.value)} />
             </div>
             <div className="hsv-row-field">
               <InputField label="Contrast" type="range" min="0" max="100"
-                value={cameraPipeline.contrast}
+                value={pipelineSettings.contrast}
                 onChange={(e) => handleInputChange(null, "contrast", e.target.value)} />
               <InputField label="Highlight" type="range" min="0" max="100"
-                value={cameraPipeline.highlight}
+                value={pipelineSettings.highlight}
                 onChange={(e) => handleInputChange(null, "highlight", e.target.value)} />
             </div>
             <div className="hsv-row-field">
               <InputField label="Red_Balance" type="range" min="0" max="100"
-                value={cameraPipeline.red_balance}
+                value={pipelineSettings.red_balance}
                 onChange={(e) => handleInputChange(null, "red_balance", e.target.value)} />
               <InputField label="Blue_Balance" type="range" min="0" max="100"
-                value={cameraPipeline.blue_balance}
+                value={pipelineSettings.blue_balance}
                 onChange={(e) => handleInputChange(null, "blue_balance", e.target.value)} />
             </div>
           </div>
@@ -172,7 +192,7 @@ function Camera({ id, initialSettings = {} }) {
       )}
 
       {/* apriltag*/}
-      {pipelineType === "apriltag" &&
+      {pipelineSettings.mode === "apriltag" &&
         Array.isArray(apriltagPose.rvec) &&
         apriltagPose.rvec.length === 3 &&
         Array.isArray(apriltagPose.tvec) &&

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 class Server:
@@ -18,6 +18,11 @@ class Server:
     @self.app.get("/")
     async def root():
       return ({"message": "Hello! You got wrong site."})
+    
+    # get camera settings
+    @self.app.get("/camera_settings")
+    async def camera_settings():
+      return({"message": "Not done yet."})
     
     # for cameras
     @self.app.websocket("/ws/{camera_id}")
