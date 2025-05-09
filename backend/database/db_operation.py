@@ -9,3 +9,6 @@ class MySQLHelper():
       database = "dashboard"
     ) 
     self.mycursor = self.db.cursor()
+
+  def get_settings(camera_id: int):
+    pass
