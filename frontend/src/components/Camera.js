@@ -9,7 +9,6 @@ const pipelineOptions = [
 
 function Camera({ id, initialSettings = {} }) {
   const [pipelineType, setPipelineType] = useState(initialSettings.pipelineType || "color");
-
   const [cameraPipeline, setCameraPipeline] = useState({
     brightness: initialSettings.brightness || 0,
     saturation: initialSettings.saturation || 0,
@@ -26,8 +25,8 @@ function Camera({ id, initialSettings = {} }) {
       val_max: initialSettings.HSV?.val_max || 100,
     }
   });
-
   const [apriltagPose, setApriltagPose] = useState({ rvec: null, tvec: null });
+  const [ws, setWs] = useState(null);
 
   useEffect(() => {
     const ws = new WebSocket(`ws://localhost:8000/ws/${id}?pipeline=${pipelineType}`);
@@ -64,28 +63,35 @@ function Camera({ id, initialSettings = {} }) {
         setApriltagPose({ rvec: null, tvec: null });
       }
     };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
+
+    setWs(ws);
   
     return () => {
-      ws.close();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, [id, pipelineType]);
-  
 
-  const handleInputChange = (section, field, value) => {
-    if (section === "HSV") {
-      setCameraPipeline(prevState => ({
-        ...prevState,
-        HSV: {
-          ...prevState.HSV,
-          [field]: Number(value)
-        }
-      }));
-    } else {
-      setCameraPipeline(prevState => ({
-        ...prevState,
-        [field]: Number(value)
-      }));
+  useEffect(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const cameraSettings = JSON.stringify(cameraPipeline);
+      ws.send(cameraSettings);
     }
+  }, [cameraPipeline, ws]);
+  
+  const handleInputChange = (section, field, value) => {
+    setCameraPipeline(prevState => ({
+      ...prevState,
+      [section]: {
+        ...prevState[section],
+        [field]: Number(value)
+      }
+    }));
   };
 
   return (
