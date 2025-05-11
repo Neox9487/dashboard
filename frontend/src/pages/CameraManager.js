@@ -17,7 +17,6 @@ function CameraManager() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
         throw new Error(`Failed!\n${response.status} ${response.statusText}`);
       }
 
@@ -57,6 +56,13 @@ function CameraManager() {
       }
     };
   }, []);
+
+  // update camera settings when available cameras change
+  useEffect(() => {
+    if (availableCameras.length > 0) {
+      fetchSettings().then(setCameraSettings);
+    }
+  }, [availableCameras]);
 
   return (
     <div>

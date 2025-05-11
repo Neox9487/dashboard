@@ -1,6 +1,6 @@
 import React from "react";
 
-const Selections =  ({label, options, onChange, ...props}) => {
+const SelectionsButtons =  ({label, options, onChange, ...props}) => {
   return (
     <div style={{marginBottom:"10px"}}>
       <label>{label}</label>
@@ -19,4 +19,4 @@ const Selections =  ({label, options, onChange, ...props}) => {
   )
 };
 
-export default Selections;
+export default SelectionsButtons;

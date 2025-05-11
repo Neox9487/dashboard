@@ -35,7 +35,7 @@ class CameraManager:
     self.lock = threading.Lock()
     self.available_ids = self._detect_available_cameras()
 
-  def _detect_available_cameras(self, max_check=10):
+  def _detect_available_cameras(self, max_check=8):
     available = []
     for i in range(max_check):
       cap = cv.VideoCapture(i)
